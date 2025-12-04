@@ -8,6 +8,35 @@ Creates an [AWS Lambda](https://aws.amazon.com/lambda/) function writing to [Ama
 
 ![architecture](docs/architecture.png)
 
+## Security and Compliance Prerequisites
+
+### CloudTrail Configuration
+This application requires AWS CloudTrail to be enabled in your AWS account for security audit logging.
+
+To verify CloudTrail is enabled:
+```bash
+aws cloudtrail describe-trails --region <your-region>
+```
+
+If CloudTrail is not enabled, create a trail:
+```bash
+aws cloudtrail create-trail --name security-audit-trail --s3-bucket-name <your-bucket>
+aws cloudtrail start-logging --name security-audit-trail
+```
+
+For production deployments, ensure CloudTrail logs are:
+- Stored in a dedicated S3 bucket with appropriate retention policies
+- Protected with S3 bucket policies preventing unauthorized deletion
+- Integrated with your SIEM or log analysis tools
+
+### Logging Features
+This stack implements comprehensive logging for security and operational visibility:
+- **VPC Flow Logs**: Captures network traffic between Lambda and DynamoDB VPC endpoint
+- **API Gateway Access Logs**: Records all API requests with caller identity and request details
+- **Lambda Structured Logs**: JSON-formatted logs with request context for easy querying
+- **DynamoDB Point-in-Time Recovery**: Enables audit trail for data-level changes
+- **Log Retention**: All logs retained for 1 year for compliance requirements
+
 ## Setup
 
 The `cdk.json` file tells the CDK Toolkit how to execute your app.
@@ -83,6 +112,15 @@ You should get below response
 
 ```json
 {"message": "Successfully inserted data!"}
+```
+
+## Querying Logs
+
+Use CloudWatch Logs Insights to query structured Lambda logs:
+```
+fields @timestamp, message, request_id, event_type, item_id
+| filter event_type = "dynamodb_write"
+| sort @timestamp desc
 ```
 
 ## Cleanup 
